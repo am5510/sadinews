@@ -1,10 +1,11 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model News {
@@ -17,6 +18,7 @@ model News {
   content   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  views     Int      @default(0)
 }
 
 model Training {
@@ -44,5 +46,7 @@ model Media {
   sourceType String   @default("upload")
   url        String?
   embedCode  String?
+  description String?
+  views      Int      @default(0)
   createdAt  DateTime @default(now())
 }

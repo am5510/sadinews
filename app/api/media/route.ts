@@ -23,6 +23,7 @@ export async function POST(request: Request) {
                 sourceType: body.sourceType || 'upload',
                 url: body.url,
                 embedCode: body.embedCode,
+                description: body.description,
             },
         });
         return NextResponse.json(media, { status: 201 });

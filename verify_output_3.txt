@@ -1,0 +1,19 @@
+Loaded Environment Variables check:
+DATABASE_URL type: string
+DATABASE_URL length: 147
+DATABASE_URL starts with: postgresql://ne
+Testing Database Connection...
+Creating test news...
+Database Operations Verification: FAILED Error: No database host or connection string was set, and key parameters have default values (host: localhost, user: saosadi.techno, db: saosadi.techno, password: null). Is an environment variable missing? Alternatively, if you intended to connect with these parameters, please set the host to 'localhost' explicitly.
+    at Un.connect (/Users/saosadi.techno/Desktop/my-app/node_modules/@neondatabase/serverless/index.js:1318:50)
+    at Dn.newClient (/Users/saosadi.techno/Desktop/my-app/node_modules/@neondatabase/serverless/index.js:1117:85)
+    at Dn.connect (/Users/saosadi.techno/Desktop/my-app/node_modules/@neondatabase/serverless/index.js:1114:1)
+    at Dn.query (/Users/saosadi.techno/Desktop/my-app/node_modules/@neondatabase/serverless/index.js:1138:1)
+    at Dn.query (/Users/saosadi.techno/Desktop/my-app/node_modules/@neondatabase/serverless/index.js:1354:96)
+    at PrismaNeonAdapter.performIO (/Users/saosadi.techno/Desktop/my-app/node_modules/@prisma/adapter-neon/dist/index.js:554:40)
+    at PrismaNeonAdapter.queryRaw (/Users/saosadi.techno/Desktop/my-app/node_modules/@prisma/adapter-neon/dist/index.js:515:41)
+    at execute (/Users/saosadi.techno/Desktop/my-app/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:192:16)
+    at callback (/Users/saosadi.techno/Desktop/my-app/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:28)
+    at Object.runInChildSpan (/Users/saosadi.techno/Desktop/my-app/node_modules/@prisma/client/src/runtime/core/tracing/TracingHelper.ts:28:12) {
+  clientVersion: '7.2.0'
+}

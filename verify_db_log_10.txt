@@ -1,0 +1,10 @@
+Loaded Environment Variables check:
+DATABASE_URL type: string
+Testing Prisma Connection (Standard)...
+Creating test news...
+prisma:info Starting a postgresql pool with 21 connections.
+Created news: cmkf1sebn0000kg9fui0yxdmh
+Reading news...
+Total news count: 1
+Deleted news: cmkf1sebn0000kg9fui0yxdmh
+Database Operations Verification: SUCCESS
