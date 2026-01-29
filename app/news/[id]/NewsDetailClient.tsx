@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronRight, Clock, Activity, Copy, Facebook, Images, Loader2, Film } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Clock, Activity, Copy, Facebook, Images, Loader2, Film, X, ChevronLeft } from 'lucide-react';
 import { NewsItem } from '@/types';
 import { useRouter } from 'next/navigation';
 
@@ -19,6 +19,7 @@ const SocialButton = ({ color, icon, onClick, title }: { color: string; icon: Re
 export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem, relatedNews: NewsItem[] }) {
     const router = useRouter();
     const [fontSize, setFontSize] = useState(16);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     useEffect(() => {
         // Increment view count on mount
@@ -26,6 +27,31 @@ export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem
             fetch(`/api/news/${news.id}/view`, { method: 'PATCH' }).catch(console.error);
         }
     }, [news?.id]);
+
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
+        if (selectedImageIndex === null || !news.album) return;
+
+        if (e.key === 'Escape') {
+            setSelectedImageIndex(null);
+        } else if (e.key === 'ArrowLeft') {
+            setSelectedImageIndex((prev) => (prev === null || prev === 0 ? news.album!.length - 1 : prev - 1));
+        } else if (e.key === 'ArrowRight') {
+            setSelectedImageIndex((prev) => (prev === null || prev === news.album!.length - 1 ? 0 : prev + 1));
+        }
+    }, [selectedImageIndex, news.album]);
+
+    useEffect(() => {
+        if (selectedImageIndex !== null) {
+            document.addEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when lightbox is open
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'auto';
+        };
+    }, [selectedImageIndex, handleKeyDown]);
 
     const currentDate = new Date().toLocaleDateString('th-TH', {
         year: 'numeric',
@@ -162,11 +188,61 @@ export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {news.album.map((imgUrl, index) => (
-                                    <div key={index} className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-sm group cursor-pointer hover:shadow-md transition">
+                                    <div
+                                        key={index}
+                                        className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-sm group cursor-pointer hover:shadow-md transition"
+                                        onClick={() => setSelectedImageIndex(index)}
+                                    >
                                         <img src={imgUrl} alt={`Album ${index + 1}`} className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" />
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Lightbox */}
+                    {selectedImageIndex !== null && news.album && (
+                        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm" onClick={() => setSelectedImageIndex(null)}>
+                            <button
+                                onClick={() => setSelectedImageIndex(null)}
+                                className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition z-[60]"
+                            >
+                                <X size={32} />
+                            </button>
+
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImageIndex((prev) => (prev === null || prev === 0 ? news.album!.length - 1 : prev - 1));
+                                }}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-[60] hidden md:block"
+                            >
+                                <ChevronLeft size={40} />
+                            </button>
+
+                            <div
+                                className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <img
+                                    src={news.album[selectedImageIndex]}
+                                    alt={`Gallery ${selectedImageIndex + 1}`}
+                                    className="max-w-full max-h-full object-contain shadow-2xl rounded-sm"
+                                />
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 bg-black/50 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-md">
+                                    {selectedImageIndex + 1} / {news.album.length}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImageIndex((prev) => (prev === null || prev === news.album!.length - 1 ? 0 : prev + 1));
+                                }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-[60] hidden md:block"
+                            >
+                                <ChevronRight size={40} />
+                            </button>
                         </div>
                     )}
 
