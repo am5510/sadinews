@@ -24,6 +24,9 @@ async function getNews() {
     album: item.album || [],
     views: item.views || 0,
     content: item.content || undefined,
+    video: item.video || undefined,
+    videoType: item.videoType || undefined,
+    videoEmbed: item.videoEmbed || undefined,
   }));
 }
 
