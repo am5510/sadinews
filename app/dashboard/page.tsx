@@ -10,11 +10,12 @@ export default function DashboardPage() {
     const router = useRouter();
 
     const getThaiDate = () => {
-        return new Date().toLocaleDateString('th-TH', {
-            year: '2-digit',
-            month: 'short',
-            day: 'numeric',
-        });
+        const date = new Date();
+        const day = date.getDate();
+        const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const month = months[date.getMonth()];
+        const year = (date.getFullYear() + 543) % 100; // Last 2 digits of Thai year
+        return `${day} ${month} ${year}`;
     };
 
     // Data State
@@ -511,7 +512,7 @@ export default function DashboardPage() {
             category: news.category || 'ทั่วไป',
             image: news.image,
             album: news.album || [],
-            time: news.time,
+            time: news.time || getThaiDate(),
             content: news.content || '',
             video: news.video || '',
             videoType: news.videoType || 'upload',
