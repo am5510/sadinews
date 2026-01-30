@@ -13,6 +13,7 @@ export interface NewsItem {
     video?: string;
     videoType?: string;
     videoEmbed?: string;
+    isVisible?: boolean;
 }
 
 export interface TrainingItem {
@@ -29,6 +30,7 @@ export interface TrainingItem {
     type: string;
     speaker?: string;
     speakerImage?: string;
+    speakerPosition?: string;
     description?: string;
 }
 

@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url);
+        const showAll = searchParams.get('all') === 'true';
+
+        const where = showAll ? {} : { isVisible: { not: false } };
+
         const news = await prisma.news.findMany({
+            where,
             orderBy: { createdAt: 'desc' },
         });
         return NextResponse.json(news);
@@ -27,6 +33,7 @@ export async function POST(request: Request) {
                 video: body.video,
                 videoType: body.videoType,
                 videoEmbed: body.videoEmbed,
+                isVisible: body.isVisible !== undefined ? body.isVisible : true,
             },
         });
         return NextResponse.json(news, { status: 201 });

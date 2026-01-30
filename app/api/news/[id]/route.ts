@@ -34,6 +34,7 @@ export async function PUT(
                 video: body.video,
                 videoType: body.videoType,
                 videoEmbed: body.videoEmbed,
+                isVisible: body.isVisible,
             },
         });
         return NextResponse.json(news);

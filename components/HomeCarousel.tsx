@@ -23,48 +23,59 @@ export default function HomeCarousel({ featuredNews }: HomeCarouselProps) {
 
     const nextSlide = (e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setCurrentSlide((prev) => (prev + 1) % featuredNews.length);
     };
 
     const prevSlide = (e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setCurrentSlide((prev) => (prev === 0 ? featuredNews.length - 1 : prev - 1));
     };
 
     if (featuredNews.length === 0) return null;
 
-    const currentItem = featuredNews[currentSlide];
-
     return (
         <div className="lg:col-span-2 group relative rounded-xl overflow-hidden shadow-sm aspect-video">
-            <Link href={`/news/${currentItem.id}`} className="block w-full h-full relative">
-                <Image
-                    src={currentItem.image}
-                    alt={currentItem.title}
-                    fill
-                    className="object-cover transform hover:scale-105 transition duration-700 animate-fade-in"
-                    priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 p-6 md:p-8 text-white w-full pr-16">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded hidden">
-                            {currentItem.category || 'ข่าวเด่น'}
-                        </span>
+            <div
+                className="flex h-full transition-transform ease-in-out duration-500"
+                style={{
+                    transform: `translateX(-${currentSlide * (100 / featuredNews.length)}%)`,
+                    width: `${featuredNews.length * 100}%`
+                }}
+            >
+                {featuredNews.map((item, index) => (
+                    <div
+                        key={item.id}
+                        className="relative w-full h-full flex-shrink-0"
+                        style={{ width: `${100 / featuredNews.length}%` }}
+                    >
+                        <Link href={`/news/${item.id}`} className="block w-full h-full relative">
+                            <Image
+                                src={item.image}
+                                alt={item.title}
+                                fill
+                                className="object-cover"
+                                priority={index === 0}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                            <div className="absolute bottom-0 left-0 p-4 pb-2 text-white w-full pr-16 bg-gradient-to-t from-black/80 to-transparent pt-12">
+                                <h2 className="text-lg md:text-xl lg:text-2xl font-bold leading-tight mb-1 drop-shadow-md line-clamp-2">
+                                    {item.title}
+                                </h2>
+                                <div className="flex items-center gap-4 text-gray-300 text-xs">
+                                    <span className="flex items-center gap-1">
+                                        <Clock size={12} /> {item.time}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Play size={12} /> {item.views?.toLocaleString() || '0'}
+                                    </span>
+                                </div>
+                            </div>
+                        </Link>
                     </div>
-                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight mb-3 drop-shadow-md line-clamp-2">
-                        {currentItem.title}
-                    </h2>
-                    <div className="flex items-center gap-4 text-gray-300 text-sm">
-                        <span className="flex items-center gap-1">
-                            <Clock size={14} /> {currentItem.time}
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <Play size={14} /> {currentItem.views?.toLocaleString() || '0'}
-                        </span>
-                    </div>
-                </div>
-            </Link>
+                ))}
+            </div>
 
             {/* Controls */}
             <button

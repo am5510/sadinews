@@ -12,6 +12,7 @@ const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค."
 
 async function getNews() {
   const news = await prisma.news.findMany({
+    where: { isVisible: { not: false } },
     orderBy: { createdAt: 'desc' },
     take: 10,
   });
@@ -69,12 +70,12 @@ export default async function Home() {
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       <main className="flex-1">
         {/* Hero Section Grid */}
-        <div className="bg-white pt-8 pb-4">
+        <div className="bg-white pt-4 pb-4">
           <div className="container mx-auto px-4 max-w-7xl">
             {/* Hero Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
               <div className="flex items-baseline gap-4">
-                <h1 className="text-3xl font-bold text-gray-900">เรื่องเด่นวันนี้</h1>
+                <h1 className="text-2xl font-bold text-gray-900">เรื่องเด่นวันนี้</h1>
                 <span className="text-gray-500 text-sm">{currentDate}</span>
               </div>
             </div>
@@ -110,12 +111,12 @@ export default async function Home() {
         </div>
 
         {/* Latest News */}
-        <div className="py-8 bg-white">
+        <div className="py-4 bg-white">
           <div className="container mx-auto px-4 max-w-7xl">
-            <div className="flex justify-between items-end mb-10">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-red-600 font-bold uppercase tracking-widest text-sm mb-2">Update</h3>
-                <h2 className="text-3xl font-bold text-gray-900">ข่าวประชาสัมพันธ์ล่าสุด</h2>
+                <h3 className="text-red-600 font-bold uppercase tracking-widest text-sm mb-0">Update</h3>
+                <h2 className="text-2xl font-bold text-gray-900">ข่าวประชาสัมพันธ์ล่าสุด</h2>
               </div>
               <Link href="/news" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-red-600 transition font-medium group">
                 ดูทั้งหมด <ArrowRight size={18} className="group-hover:translate-x-1 transition" />
@@ -146,11 +147,11 @@ export default async function Home() {
         </div>
 
         {/* Training Schedule */}
-        <div className="py-8 bg-gray-50">
+        <div className="py-4 bg-gray-50">
           <div className="container mx-auto px-4 max-w-7xl">
-            <div className="flex justify-between items-end mb-10">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">ปฏิทินการจัดอบรม</h2>
+                <h2 className="text-2xl font-bold text-gray-900">ปฏิทินการจัดอบรม</h2>
               </div>
               <Link href="/trainings" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-blue-600 transition font-medium group">
                 ดูตารางทั้งหมด <ArrowRight size={18} className="group-hover:translate-x-1 transition" />
@@ -187,11 +188,11 @@ export default async function Home() {
         </div>
 
         {/* Media Gallery */}
-        <div className="py-8 bg-white">
+        <div className="py-4 bg-white">
           <div className="container mx-auto px-4 max-w-7xl">
-            <div className="flex justify-between items-end mb-10">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">สื่อมัลติมีเดียล่าสุด</h2>
+                <h2 className="text-2xl font-bold text-gray-900">สื่อมัลติมีเดียล่าสุด</h2>
               </div>
               <Link href="/media" className="hidden md:flex items-center gap-2 text-gray-500 hover:text-purple-600 transition font-medium group">
                 ดูทั้งหมด <ArrowRight size={18} className="group-hover:translate-x-1 transition" />
@@ -214,17 +215,17 @@ export default async function Home() {
                         if (item.category === 'video' || item.sourceType === 'video') {
                           // YouTube Thumbnail
                           // @ts-ignore
-                          const ytMatch = item.url?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([^&?]+)/);
+                          const ytMatch = item.url?.trim().match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([^&?\/]+)/);
                           if (ytMatch && ytMatch[1]) {
                             return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
                           }
                           // Fallback to placeholder for other videos
-                          return '/placeholder-video.jpg';
+                          return 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop';
                         }
 
                         // 3. Fallback to original URL (for images) or generic placeholder
                         // @ts-ignore
-                        return item.url || '/placeholder.jpg';
+                        return item.url || 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000&auto=format&fit=crop';
                       })()}
                       // @ts-ignore
                       alt={item.title}

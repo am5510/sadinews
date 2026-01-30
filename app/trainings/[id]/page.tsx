@@ -66,7 +66,7 @@ export default function TrainingDetailPage() {
                         <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
                         <div className="relative z-10">
                             <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm mb-4 inline-block border border-white/30">{event.type}</span>
-                            <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">{event.title}</h1>
+                            <h1 className="text-xl md:text-2xl font-bold leading-tight mb-4">{event.title}</h1>
                             <div className="flex flex-wrap gap-4 text-sm opacity-90">
                                 <div className="flex items-center gap-1.5"><Calendar size={16} /> {event.date}/{event.month + 1}/{event.year}</div>
                                 <div className="flex items-center gap-1.5"><Clock size={16} /> {event.time}</div>
@@ -89,7 +89,7 @@ export default function TrainingDetailPage() {
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 text-lg">วิทยากร: {event.speaker || '-'}</h4>
-                            <p className="text-sm text-gray-500 mt-1">ผู้เชี่ยวชาญที่มีประสบการณ์</p>
+                            <p className="text-sm text-gray-500 mt-1">{event.speakerPosition || 'ผู้เชี่ยวชาญที่มีประสบการณ์'}</p>
                         </div>
                     </div>
                 </div>

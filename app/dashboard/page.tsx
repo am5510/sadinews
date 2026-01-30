@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, LayoutDashboard, FileText, Calendar, Film, ListFilter, Plus, Edit, Trash2, ArrowLeft, LogOut, X, Loader2, UploadCloud, Images, ImageIcon, Video, CheckCircle, Link as LinkIcon, Code } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, FileText, Calendar, Film, ListFilter, Plus, Edit, Trash2, ArrowLeft, LogOut, X, Loader2, UploadCloud, Images, ImageIcon, Video, CheckCircle, Link as LinkIcon, Code, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NewsItem, TrainingItem, MediaItem } from '@/types';
@@ -61,7 +61,7 @@ export default function DashboardPage() {
     // Insert Image/Video State
     const [isInsertingImage, setIsInsertingImage] = useState(false);
     const [isInsertingVideo, setIsInsertingVideo] = useState(false);
-    const [trainingForm, setTrainingForm] = useState({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', type: 'Onsite', description: '' });
+    const [trainingForm, setTrainingForm] = useState({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' });
     const [mediaForm, setMediaForm] = useState({ title: '', category: 'image', sourceType: 'upload', url: '', embedCode: '', description: '', coverImage: '' });
 
     // Fetch Data
@@ -69,7 +69,7 @@ export default function DashboardPage() {
         try {
             setIsLoading(true);
             const [newsRes, trainingsRes, mediaRes] = await Promise.all([
-                fetch('/api/news', { cache: 'no-store' }),
+                fetch('/api/news?all=true', { cache: 'no-store' }),
                 fetch('/api/trainings', { cache: 'no-store' }),
                 fetch('/api/media', { cache: 'no-store' }),
             ]);
@@ -185,6 +185,13 @@ export default function DashboardPage() {
     const removeAlbumImage = (index: number) => {
         setAlbumFiles(prev => prev.filter((_, i) => i !== index));
         setAlbumPreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeExistingAlbumImage = (index: number) => {
+        setNewsForm(prev => ({
+            ...prev,
+            album: prev.album.filter((_, i) => i !== index)
+        }));
     };
 
     const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -416,7 +423,8 @@ export default function DashboardPage() {
                 price: trainingForm.price,
                 type: trainingForm.type,
                 speaker: trainingForm.speaker,
-                speakerImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop',
+                speakerPosition: trainingForm.speakerPosition,
+                speakerImage: trainingForm.speakerImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop',
                 description: trainingForm.description,
             };
 
@@ -437,7 +445,7 @@ export default function DashboardPage() {
             }
 
             setShowTrainingModal(false);
-            setTrainingForm({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', type: 'Onsite', description: '' });
+            setTrainingForm({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' });
             setEditingTrainingId(null);
             setIsUploading(false);
             fetchData();
@@ -525,7 +533,10 @@ export default function DashboardPage() {
             // We don't have a separate state for video preview yet, but logic can handle checking form.video
         }
         setUploadPreview(news.image);
-        setAlbumPreviews(news.album || []);
+        setUploadPreview(news.image);
+        // We do NOT set albumPreviews here anymore because it's only for NEW uploads.
+        // Existing album images are in newsForm.album
+        setAlbumPreviews([]);
         setShowNewsModal(true);
     };
 
@@ -541,6 +552,7 @@ export default function DashboardPage() {
             price: t.price || '',
             speaker: t.speaker || '',
             speakerImage: t.speakerImage || '',
+            speakerPosition: t.speakerPosition || '',
             type: t.type,
             description: t.description || ''
         });
@@ -627,6 +639,27 @@ export default function DashboardPage() {
                                         <tr key={news.id} className="border-b border-gray-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 font-medium truncate max-w-[200px]">{news.title}</td>
                                             <td className="px-4 py-3 text-right flex justify-end gap-2">
+                                                <button onClick={async () => {
+                                                    try {
+                                                        const newVisibility = !news.isVisible;
+                                                        // Optimistic update
+                                                        setNewsList(prev => prev.map(n => n.id === news.id ? { ...n, isVisible: newVisibility } : n));
+
+                                                        const res = await fetch(`/api/news/${news.id}`, {
+                                                            method: 'PUT',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ ...news, isVisible: newVisibility })
+                                                        });
+
+                                                        if (!res.ok) throw new Error('Failed to update visibility');
+                                                    } catch (error) {
+                                                        console.error('Error toggling visibility:', error);
+                                                        fetchData(); // Revert on error
+                                                        alert('Failed to update visibility');
+                                                    }
+                                                }} className={`p-1.5 rounded transition ${news.isVisible !== false ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`} title={news.isVisible !== false ? 'ซ่อนข่าว' : 'แสดงข่าว'}>
+                                                    {news.isVisible !== false ? <Eye size={16} /> : <EyeOff size={16} />}
+                                                </button>
                                                 <button onClick={() => openEditNews(news)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="แก้ไข"><Edit size={16} /></button>
                                                 <button onClick={() => handleDelete('news', news.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded" title="ลบ"><Trash2 size={16} /></button>
                                             </td>
@@ -773,7 +806,42 @@ export default function DashboardPage() {
 
                             <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">เวลา</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={newsForm.time} onChange={(e) => setNewsForm({ ...newsForm, time: e.target.value })} /></div></div>
                             <div><label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพหลัก (Cover)</label><div className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 transition cursor-pointer relative">{uploadPreview ? (<><img src={uploadPreview} className="h-32 object-cover rounded-lg shadow-sm" alt="Preview" /><button type="button" onClick={() => { setUploadPreview(null); setSelectedFile(null); }} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700"><X size={14} /></button></>) : (<><UploadCloud size={32} className="text-gray-400" /><span className="text-sm text-gray-500">เลือกรูปภาพหลัก</span><input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></>)}</div><div className="mt-2 text-center text-xs text-gray-400">- หรือใส่ URL -</div><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none text-sm mt-1" placeholder="https://example.com/image.jpg" value={newsForm.image} onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })} /></div>
-                            <div><label className="block text-sm font-medium text-gray-700 mb-1">อัลบั้มรูปภาพ (เพิ่มเติม)</label><div className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 transition cursor-pointer relative"><Images size={32} className="text-gray-400" /><span className="text-sm text-gray-500">คลิกเพื่อเลือกหลายรูป</span><input type="file" accept="image/*" multiple onChange={handleAlbumChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>{albumPreviews.length > 0 && (<div className="grid grid-cols-4 gap-2 mt-3">{albumPreviews.map((url, index) => (<div key={index} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200"><img src={url} className="w-full h-full object-cover" alt={`Album ${index}`} /><button type="button" onClick={() => removeAlbumImage(index)} className="absolute top-1 right-1 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-red-700"><X size={12} /></button></div>))}</div>)}</div>
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">อัลบั้มรูปภาพ (เพิ่มเติม)</label><div className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 transition cursor-pointer relative"><Images size={32} className="text-gray-400" /><span className="text-sm text-gray-500">คลิกเพื่อเลือกหลายรูป</span><input type="file" accept="image/*" multiple onChange={handleAlbumChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
+
+                                {/* Existing Album Images */}
+                                {newsForm.album && newsForm.album.length > 0 && (
+                                    <div className="mt-4">
+                                        <h4 className="text-xs font-bold text-gray-500 mb-2">รูปภาพเดิม:</h4>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {newsForm.album.map((url, index) => (
+                                                <div key={`existing-${index}`} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200">
+                                                    <img src={url} className="w-full h-full object-cover" alt={`Existing Album ${index}`} />
+                                                    <button type="button" onClick={() => removeExistingAlbumImage(index)} className="absolute top-1 right-1 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-red-700">
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* New Uploads */}
+                                {albumPreviews.length > 0 && (
+                                    <div className="mt-4">
+                                        <h4 className="text-xs font-bold text-gray-500 mb-2">รูปภาพใหม่ที่กำลังอัปโหลด:</h4>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {albumPreviews.map((url, index) => (
+                                                <div key={`new-${index}`} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200 border-green-500">
+                                                    <img src={url} className="w-full h-full object-cover" alt={`New Album ${index}`} />
+                                                    <button type="button" onClick={() => removeAlbumImage(index)} className="absolute top-1 right-1 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-red-700">
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <div className="pt-4 flex justify-end gap-3 border-t"><button type="button" onClick={() => setShowNewsModal(false)} className="px-5 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium">ยกเลิก</button><button type="submit" disabled={isUploading} className={`px-6 py-2 rounded-lg text-white font-bold shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${editingNewsId ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-600 hover:bg-green-700'}`}>{isUploading ? <><Loader2 size={18} className="animate-spin" /> กำลังอัปโหลด...</> : (editingNewsId ? 'บันทึกการแก้ไข' : 'บันทึกข่าวลงระบบ')}</button></div>
                         </form>
                     </div>
@@ -785,6 +853,7 @@ export default function DashboardPage() {
                 showTrainingModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"><div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-fade-in-up"><div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center"><h3 className="text-lg font-bold flex items-center gap-2"><Calendar size={20} className="text-blue-200" /> {editingTrainingId ? 'แก้ไขหลักสูตรอบรม' : 'เพิ่มหลักสูตรอบรม'}</h3><button onClick={() => setShowTrainingModal(false)} className="text-blue-200 hover:text-white"><X size={24} /></button></div><form onSubmit={handleAddTraining} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อหลักสูตร</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.title} onChange={(e) => setTrainingForm({ ...trainingForm, title: e.target.value })} /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">วันที่ (MM/DD/YYYY)</label><input type="date" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.rawDate} onChange={(e) => setTrainingForm({ ...trainingForm, rawDate: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">เวลา (เช่น 09:00-16:00)</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.time} onChange={(e) => setTrainingForm({ ...trainingForm, time: e.target.value })} /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">สถานที่</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.location} onChange={(e) => setTrainingForm({ ...trainingForm, location: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ประเภท</label><select className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none bg-white" value={trainingForm.type} onChange={(e) => setTrainingForm({ ...trainingForm, type: e.target.value })}><option>Onsite</option><option>Online</option><option>Hybrid</option></select></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">จำนวนรับ (ท่าน)</label><input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.seats} onChange={(e) => setTrainingForm({ ...trainingForm, seats: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ราคา</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.price} onChange={(e) => setTrainingForm({ ...trainingForm, price: e.target.value })} /></div></div>
                     <div className="grid grid-cols-2 gap-4 items-end">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">วิทยากร</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.speaker} onChange={(e) => setTrainingForm({ ...trainingForm, speaker: e.target.value })} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งวิทยากร</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.speakerPosition} onChange={(e) => setTrainingForm({ ...trainingForm, speakerPosition: e.target.value })} /></div>
                         <div className="relative"><input type="file" id="speaker-upload" className="hidden" accept="image/*" onChange={handleSpeakerFileChange} /><label htmlFor="speaker-upload" className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50 text-sm text-gray-600"><UploadCloud size={18} />{trainingForm.speakerImage ? 'เปลี่ยนรูป' : 'รูปวิทยากร'}</label></div>
                     </div>
                     <div>

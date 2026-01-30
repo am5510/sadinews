@@ -37,6 +37,7 @@ export async function PUT(
                 type: body.type,
                 speaker: body.speaker,
                 speakerImage: body.speakerImage,
+                speakerPosition: body.speakerPosition,
                 description: body.description,
             },
         });

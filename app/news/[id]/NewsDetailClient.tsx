@@ -18,7 +18,7 @@ const SocialButton = ({ color, icon, onClick, title }: { color: string; icon: Re
 
 export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem, relatedNews: NewsItem[] }) {
     const router = useRouter();
-    const [fontSize, setFontSize] = useState(16);
+
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     useEffect(() => {
@@ -75,20 +75,14 @@ export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem
                 </div>
 
                 <div className="max-w-4xl mx-auto bg-white p-4 md:p-8 rounded-xl shadow-sm">
-                    <h1 className="text-2xl md:text-4xl font-bold text-gray-900 leading-tight mb-4">{news.title}</h1>
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight mb-4">{news.title}</h1>
 
                     <div className="flex items-center justify-between border-t border-b border-gray-100 py-4 mb-6">
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                             <div className="flex items-center gap-1"><Clock size={16} /> {news.time || currentDate}</div>
                             <div className="flex items-center gap-1"><Activity size={16} /> {news.views?.toLocaleString() || '0'} อ่าน</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1">
-                                <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="p-1 hover:text-red-600 text-xs">- ก</button>
-                                <span className="text-gray-300">|</span>
-                                <button onClick={() => setFontSize(Math.min(24, fontSize + 2))} className="p-1 hover:text-red-600 text-lg">ก +</button>
-                            </div>
-                        </div>
+
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -130,7 +124,7 @@ export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem
 
                     <div
                         className="text-gray-800 leading-relaxed space-y-6 news-content"
-                        style={{ fontSize: `${fontSize}px`, fontFamily: 'var(--font-noto-sans-thai)' }}
+                        style={{ fontFamily: 'var(--font-noto-sans-thai)' }}
                         dangerouslySetInnerHTML={{ __html: contentToRender }}
                     ></div>
 

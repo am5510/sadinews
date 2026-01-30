@@ -22,6 +22,7 @@ model News {
   video     String?
   videoType String?
   videoEmbed String?
+  isVisible Boolean  @default(true)
 }
 
 model Training {
@@ -38,6 +39,7 @@ model Training {
   type         String   @default("Onsite")
   speaker      String?
   speakerImage String?
+  speakerPosition String?
   description  String?
   createdAt    DateTime @default(now())
 }

@@ -30,6 +30,7 @@ export async function POST(request: Request) {
                 type: body.type || 'Onsite',
                 speaker: body.speaker,
                 speakerImage: body.speakerImage,
+                speakerPosition: body.speakerPosition,
                 description: body.description,
             },
         });
