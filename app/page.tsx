@@ -85,7 +85,7 @@ export default async function Home() {
               <HomeCarousel featuredNews={featuredNews} />
 
               {/* Side Grid (Right - 1/3) -> 2x2 Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 lg:gap-x-4 lg:gap-y-6 gap-4">
+              <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 lg:gap-x-4 lg:gap-y-6 gap-4">
                 {featuredNews.slice(1, 5).map((item) => (
                   <Link key={item.id} href={`/news/${item.id}`} className="group cursor-pointer flex flex-col gap-2">
                     <div className="w-full aspect-video rounded-lg overflow-hidden relative shadow-sm">
