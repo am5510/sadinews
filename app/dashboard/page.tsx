@@ -150,18 +150,26 @@ export default function DashboardPage() {
 
     const uploadFile = async (file: File): Promise<string> => {
         try {
-            const formData = new FormData();
-            formData.append('file', file);
+            // 1. Get Presigned URL
+            const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
+            if (!res.ok) throw new Error('Failed to get upload URL');
+            const { uploadUrl, publicUrl } = await res.json();
 
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
+            // 2. Upload directly to R2
+            const uploadRes = await fetch(uploadUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type,
+                },
             });
 
-            if (!res.ok) throw new Error('Upload failed');
+            if (!uploadRes.ok) {
+                console.error('Upload to R2 failed', uploadRes);
+                throw new Error('Failed to upload file to storage');
+            }
 
-            const data = await res.json();
-            return data.url;
+            return publicUrl;
         } catch (error) {
             console.error('Upload Error:', error);
             throw error;

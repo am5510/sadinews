@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
@@ -15,6 +16,43 @@ const S3 = new S3Client({
         secretAccessKey: R2_SECRET_ACCESS_KEY || '',
     },
 });
+
+export async function GET(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const filename = searchParams.get('filename');
+        const contentType = searchParams.get('contentType');
+
+        if (!filename || !contentType) {
+            return NextResponse.json({ error: 'Missing filename or contentType' }, { status: 400 });
+        }
+
+        // Create a unique filename
+        const timestamp = Date.now();
+        const originalName = filename.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9.\-_]/g, '');
+        const uniqueFilename = `${timestamp}-${originalName}`;
+
+        const command = new PutObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: uniqueFilename,
+            ContentType: contentType,
+        });
+
+        // Generate the presigned URL
+        const uploadUrl = await getSignedUrl(S3, command, { expiresIn: 3600 }); // URL expires in 1 hour
+
+        // Return the public URL
+        const publicUrl = R2_PUBLIC_URL
+            ? `${R2_PUBLIC_URL}/${uniqueFilename}`
+            : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${uniqueFilename}`;
+
+        return NextResponse.json({ uploadUrl, publicUrl, filename: uniqueFilename }, { status: 200 });
+
+    } catch (error) {
+        console.error('Presigned URL error:', error);
+        return NextResponse.json({ error: 'Error generating upload URL' }, { status: 500 });
+    }
+}
 
 export async function POST(request: Request) {
     try {
@@ -42,11 +80,9 @@ export async function POST(request: Request) {
         }));
 
         // Return the public URL
-        // If R2_PUBLIC_URL is not set, we might need to fallback or error, but assuming it is set for now.
-        // It should differ based on whether it's a custom domain or the R2 dev subdomain.
         const publicUrl = R2_PUBLIC_URL
             ? `${R2_PUBLIC_URL}/${filename}`
-            : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`; // Fallback (often doesn't work publicly without config)
+            : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`;
 
         return NextResponse.json({ url: publicUrl }, { status: 200 });
 
