@@ -235,11 +235,7 @@ export default async function Home() {
                     />
                     {/* @ts-ignore */}
                     {/* @ts-ignore */}
-                    {(item.category === 'video' || item.sourceType === 'video') && (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-sm p-2 rounded-full border border-white/50 group-hover:scale-110 transition">
-                        <Play fill="white" className="text-white" size={16} />
-                      </div>
-                    )}
+
                   </div>
                   <h4 className="text-sm font-medium line-clamp-2 text-gray-900 group-hover:text-purple-600 transition">{item.title}</h4>
                 </Link>

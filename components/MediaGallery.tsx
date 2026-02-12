@@ -87,13 +87,7 @@ export default function MediaGallery({ initialMedia }: MediaGalleryProps) {
                             />
 
                             {/* Play icon overlay for videos */}
-                            {(item.category === 'video' || item.type === 'video' || item.sourceType === 'video') && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition">
-                                    <div className="bg-white/30 backdrop-blur-md p-3 rounded-full border border-white/50 shadow-lg group-hover:scale-110 transition">
-                                        <Play fill="white" className="text-white" size={24} />
-                                    </div>
-                                </div>
-                            )}
+
 
                             {/* Hover Overlay */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col justify-end p-4">

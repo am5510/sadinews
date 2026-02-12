@@ -195,21 +195,45 @@ export default function MediaDetailPage() {
                     <div className="mt-12 pt-8 border-t border-gray-200">
                         <h3 className="text-xl font-bold mb-6 border-l-4 border-purple-600 pl-3 flex items-center gap-2">สื่อที่เกี่ยวข้อง</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {relatedMedia.map((relItem, idx) => (
-                                <Link key={idx} href={`/media/${relItem.id}`} className="group cursor-pointer">
-                                    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-2 relative shadow-sm">
-                                        {/* @ts-ignore */}
-                                        <img src={relItem.url || relItem.image} alt={relItem.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                        {/* @ts-ignore */}
-                                        {(relItem.category === 'video' || relItem.type === 'video') && (
-                                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm p-1.5 rounded-full">
-                                                <Play fill="white" className="text-white" size={12} />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <h4 className="text-sm font-medium line-clamp-2 group-hover:text-purple-600 transition">{relItem.title}</h4>
-                                </Link>
-                            ))}
+                            {relatedMedia.map((relItem, idx) => {
+                                // Calculate thumbnail URL
+                                const getThumbnailUrl = (item: any) => {
+                                    if (item.coverImage) return item.coverImage;
+
+                                    if (item.category === 'video' || item.type === 'video') {
+                                        if (item.url) {
+                                            // YouTube
+                                            const ytMatch = item.url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/);
+                                            if (ytMatch && ytMatch[1]) {
+                                                return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+                                            }
+                                        }
+                                        // Fallback for video without cover
+                                        return 'https://placehold.co/600x400?text=Video';
+                                    }
+
+                                    return item.url || item.image || 'https://placehold.co/600x400?text=No+Image';
+                                };
+
+                                return (
+                                    <Link key={idx} href={`/media/${relItem.id}`} className="group cursor-pointer">
+                                        <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-2 relative shadow-sm">
+                                            {/* @ts-ignore */}
+                                            <img
+                                                src={getThumbnailUrl(relItem)}
+                                                alt={relItem.title}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=No+Image';
+                                                }}
+                                            />
+                                            {/* @ts-ignore */}
+
+                                        </div>
+                                        <h4 className="text-sm font-medium line-clamp-2 group-hover:text-purple-600 transition">{relItem.title}</h4>
+                                    </Link>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
