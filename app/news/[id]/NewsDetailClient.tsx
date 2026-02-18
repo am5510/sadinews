@@ -204,12 +204,13 @@ export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem
                                 <X size={32} />
                             </button>
 
+
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedImageIndex((prev) => (prev === null || prev === 0 ? news.album!.length - 1 : prev - 1));
                                 }}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-[60] hidden md:block"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-[60]"
                             >
                                 <ChevronLeft size={40} />
                             </button>
@@ -233,7 +234,7 @@ export default function NewsDetailClient({ news, relatedNews }: { news: NewsItem
                                     e.stopPropagation();
                                     setSelectedImageIndex((prev) => (prev === null || prev === news.album!.length - 1 ? 0 : prev + 1));
                                 }}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-[60] hidden md:block"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-[60]"
                             >
                                 <ChevronRight size={40} />
                             </button>
