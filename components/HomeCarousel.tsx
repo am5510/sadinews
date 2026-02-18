@@ -12,6 +12,11 @@ interface HomeCarouselProps {
 
 export default function HomeCarousel({ featuredNews }: HomeCarouselProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+    // Minimum swipe distance (in px)
+    const minSwipeDistance = 50;
 
     useEffect(() => {
         if (featuredNews.length === 0) return;
@@ -20,6 +25,31 @@ export default function HomeCarousel({ featuredNews }: HomeCarouselProps) {
         }, 5000);
         return () => clearInterval(interval);
     }, [featuredNews.length]);
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null); // Reset touch end
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            // Swipe Left -> Next Slide
+            setCurrentSlide((prev) => (prev + 1) % featuredNews.length);
+        } else if (isRightSwipe) {
+            // Swipe Right -> Prev Slide
+            setCurrentSlide((prev) => (prev === 0 ? featuredNews.length - 1 : prev - 1));
+        }
+    };
 
     const nextSlide = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -36,7 +66,12 @@ export default function HomeCarousel({ featuredNews }: HomeCarouselProps) {
     if (featuredNews.length === 0) return null;
 
     return (
-        <div className="lg:col-span-2 group relative rounded-xl overflow-hidden shadow-sm aspect-video">
+        <div
+            className="lg:col-span-2 group relative rounded-xl overflow-hidden shadow-sm aspect-video touch-pan-y"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
             <div
                 className="flex h-full transition-transform ease-in-out duration-500"
                 style={{
