@@ -115,13 +115,13 @@ export default function HomeCarousel({ featuredNews }: HomeCarouselProps) {
             {/* Controls */}
             <button
                 onClick={prevSlide}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full backdrop-blur-sm transition z-20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full backdrop-blur-sm transition z-20 opacity-0 lg:opacity-0 lg:group-hover:opacity-100 hidden lg:block"
             >
                 <ChevronLeft size={24} />
             </button>
             <button
                 onClick={nextSlide}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full backdrop-blur-sm transition z-20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full backdrop-blur-sm transition z-20 opacity-0 lg:opacity-0 lg:group-hover:opacity-100 hidden lg:block"
             >
                 <ChevronRight size={24} />
             </button>
