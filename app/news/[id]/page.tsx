@@ -5,6 +5,17 @@ import NewsDetailClient from './NewsDetailClient';
 import Link from 'next/link';
 import { NewsItem } from '@/types';
 
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+    const news = await prisma.news.findMany({
+        select: { id: true },
+    });
+    return news.map((item) => ({
+        id: item.id,
+    }));
+}
+
 interface Props {
     params: Promise<{ id: string }>;
 }

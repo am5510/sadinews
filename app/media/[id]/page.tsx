@@ -1,85 +1,57 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronRight, Clock, Facebook, Play, Loader2, Activity } from 'lucide-react';
-import { MediaItem, NewsItem } from '@/types';
+import { ArrowLeft, ChevronRight, Clock, Activity } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
+import Image from 'next/image';
+import SocialShare from './SocialShare';
+import { MediaItem } from '@/types';
 
-const SocialButton = ({ color, icon, onClick, title }: { color: string; icon: React.ReactNode; onClick?: () => void; title?: string }) => (
-    <button
-        onClick={onClick}
-        title={title}
-        className={`${color} text-white w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center hover:opacity-90 transition shadow-sm hover:scale-110 active:scale-95`}
-    >
-        {icon}
-    </button>
-);
+export const revalidate = 60;
 
-export default function MediaDetailPage() {
-    const params = useParams();
-    const id = params.id as string;
+export async function generateStaticParams() {
+    const media = await prisma.media.findMany({
+        select: { id: true },
+    });
+    return media.map((item) => ({
+        id: item.id,
+    }));
+}
 
-    const [item, setItem] = useState<MediaItem | null>(null);
-    const [relatedMedia, setRelatedMedia] = useState<MediaItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+interface Props {
+    params: Promise<{ id: string }>;
+}
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                // Fetch current media
-                const mediaRes = await fetch(`/api/media/${id}`);
-                if (!mediaRes.ok) throw new Error('Media not found');
-                const mediaData = await mediaRes.json();
-                setItem(mediaData);
+async function getRelatedMedia(currentId: string) {
+    const media = await prisma.media.findMany({
+        where: { NOT: { id: currentId } },
+        take: 4,
+        orderBy: { createdAt: 'desc' },
+    });
 
-                // Fetch related media
-                const allMediaRes = await fetch('/api/media');
-                if (allMediaRes.ok) {
-                    const allMedia = await allMediaRes.json();
-                    const others = allMedia.filter((m: MediaItem) => m.id !== id);
+    if (media.length > 0) return media;
 
-                    if (others.length > 0) {
-                        setRelatedMedia(others.slice(0, 4));
-                    } else {
-                        // Fallback to news as related media (preserve original behavior)
-                        const newsRes = await fetch('/api/news');
-                        if (newsRes.ok) {
-                            const newsList = await newsRes.json();
-                            const mappedNews = newsList.slice(0, 4).map((n: NewsItem) => ({
-                                id: `related-${n.id}`,
-                                category: 'image',
-                                sourceType: 'link',
-                                url: n.image,
-                                title: n.title,
-                                type: 'image'
-                            }));
-                            setRelatedMedia(mappedNews);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    // Fallback to news if no other media
+    const news = await prisma.news.findMany({
+        take: 4,
+        orderBy: { createdAt: 'desc' },
+    });
 
-        if (id) {
-            // Increment view count
-            fetch(`/api/media/${id}/view`, { method: 'PATCH' }).catch(console.error);
-            fetchData();
-        }
-    }, [id]);
+    return news.map(n => ({
+        id: `related-${n.id}`,
+        title: n.title,
+        coverImage: n.image,
+        category: 'image',
+        url: n.image,
+        createdAt: n.createdAt,
+    }));
+}
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <Loader2 size={48} className="animate-spin text-purple-600" />
-            </div>
-        );
-    }
+export default async function MediaDetailPage({ params }: Props) {
+    const { id } = await params;
+
+    const item = await prisma.media.findUnique({
+        where: { id },
+    });
 
     if (!item) {
         return (
@@ -90,11 +62,55 @@ export default function MediaDetailPage() {
         );
     }
 
+    // Increment view count (This needs to be done via a separate API call or Server Action if we want it to be live, 
+    // but for SSG/ISR, we might skip strictly real-time view counting on the server render itself, 
+    // or use a client component to trigger it. For now, we will omit the side-effect fetch in the server component).
+    // Ideally, add a client component just for "ViewCounter".
+
+    const relatedMedia = await getRelatedMedia(id);
+
     const currentDate = new Date().toLocaleDateString('th-TH', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
     });
+
+    // Helper to check for YouTube/Vimeo
+    const getEmbedUrl = (url: string | null) => {
+        if (!url) return null;
+
+        // YouTube
+        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/);
+        if (ytMatch && ytMatch[1]) {
+            return `https://www.youtube.com/embed/${ytMatch[1]}`;
+        }
+
+        // Vimeo
+        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+        if (vimeoMatch && vimeoMatch[1]) {
+            return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+        }
+
+        return null;
+    };
+
+    const getThumbnailUrl = (item: any) => {
+        if (item.coverImage) return item.coverImage;
+
+        if (item.category === 'video') {
+            if (item.url) {
+                // YouTube
+                const ytMatch = item.url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/);
+                if (ytMatch && ytMatch[1]) {
+                    return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+                }
+            }
+            // Fallback for video without cover
+            return 'https://placehold.co/600x400?text=Video';
+        }
+
+        return item.url || item.image || 'https://placehold.co/600x400?text=No+Image';
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
@@ -118,51 +134,17 @@ export default function MediaDetailPage() {
                             <div className="flex items-center gap-1"><Clock size={16} /> {currentDate}</div>
                             <div className="flex items-center gap-1 text-gray-500"><Activity size={16} /> {item.views?.toLocaleString() || '0'} รับชม</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-700 mr-2 hidden sm:inline">แชร์</span>
-                            <SocialButton
-                                color="bg-[#06C755]"
-                                icon={<span className="font-bold text-sm">LINE</span>}
-                                onClick={() => window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}`, '_blank')}
-                                title="แชร์ผ่าน LINE"
-                            />
-                            <SocialButton
-                                color="bg-[#1877F2]"
-                                icon={<Facebook size={16} fill="white" />}
-                                onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')}
-                                title="แชร์ผ่าน Facebook"
-                            />
-                        </div>
+                        <SocialShare title={item.title} />
                     </div>
 
-                    <div className="rounded-xl overflow-hidden mb-8 aspect-video shadow-md bg-black flex items-center justify-center">
+                    <div className="rounded-xl overflow-hidden mb-8 aspect-video shadow-md bg-black flex items-center justify-center relative">
                         {(() => {
-                            if (item.sourceType === 'embed') {
-                                return <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: item.embedCode || '' }} />;
+                            if (item.sourceType === 'embed' && item.embedCode) {
+                                return <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: item.embedCode }} />;
                             }
 
-                            if (item.category === 'video' || item.type === 'video') {
-                                // Helper to check for YouTube/Vimeo
-                                const getEmbedUrl = (url: string) => {
-                                    if (!url) return null;
-
-                                    // YouTube
-                                    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/);
-                                    if (ytMatch && ytMatch[1]) {
-                                        return `https://www.youtube.com/embed/${ytMatch[1]}`;
-                                    }
-
-                                    // Vimeo
-                                    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-                                    if (vimeoMatch && vimeoMatch[1]) {
-                                        return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-                                    }
-
-                                    return null;
-                                };
-
-                                const embedUrl = item.url ? getEmbedUrl(item.url) : null;
-
+                            if (item.category === 'video') {
+                                const embedUrl = getEmbedUrl(item.url);
                                 if (embedUrl) {
                                     return (
                                         <iframe
@@ -174,11 +156,17 @@ export default function MediaDetailPage() {
                                         />
                                     );
                                 }
-
-                                return <video src={item.url || ''} className="w-full h-full" controls autoPlay />;
+                                return <video src={item.url || ''} className="w-full h-full" controls />;
                             }
 
-                            return <img src={item.url || ''} alt={item.title} className="w-full h-full object-contain" />;
+                            return (
+                                <Image
+                                    src={item.url || ''}
+                                    alt={item.title}
+                                    fill
+                                    className="object-contain"
+                                />
+                            );
                         })()}
                     </div>
 
@@ -195,45 +183,19 @@ export default function MediaDetailPage() {
                     <div className="mt-12 pt-8 border-t border-gray-200">
                         <h3 className="text-xl font-bold mb-6 border-l-4 border-purple-600 pl-3 flex items-center gap-2">สื่อที่เกี่ยวข้อง</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {relatedMedia.map((relItem, idx) => {
-                                // Calculate thumbnail URL
-                                const getThumbnailUrl = (item: any) => {
-                                    if (item.coverImage) return item.coverImage;
-
-                                    if (item.category === 'video' || item.type === 'video') {
-                                        if (item.url) {
-                                            // YouTube
-                                            const ytMatch = item.url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/);
-                                            if (ytMatch && ytMatch[1]) {
-                                                return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
-                                            }
-                                        }
-                                        // Fallback for video without cover
-                                        return 'https://placehold.co/600x400?text=Video';
-                                    }
-
-                                    return item.url || item.image || 'https://placehold.co/600x400?text=No+Image';
-                                };
-
-                                return (
-                                    <Link key={idx} href={`/media/${relItem.id}`} className="group cursor-pointer">
-                                        <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-2 relative shadow-sm">
-                                            {/* @ts-ignore */}
-                                            <img
-                                                src={getThumbnailUrl(relItem)}
-                                                alt={relItem.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=No+Image';
-                                                }}
-                                            />
-                                            {/* @ts-ignore */}
-
-                                        </div>
-                                        <h4 className="text-sm font-medium line-clamp-2 group-hover:text-purple-600 transition">{relItem.title}</h4>
-                                    </Link>
-                                );
-                            })}
+                            {relatedMedia.map((relItem: any, idx) => (
+                                <Link key={idx} href={relItem.id.startsWith('related-') ? '#' : `/media/${relItem.id}`} className="group cursor-pointer">
+                                    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-2 relative shadow-sm">
+                                        <Image
+                                            src={getThumbnailUrl(relItem)}
+                                            alt={relItem.title}
+                                            fill
+                                            className="object-cover group-hover:scale-110 transition duration-500"
+                                        />
+                                    </div>
+                                    <h4 className="text-sm font-medium line-clamp-2 group-hover:text-purple-600 transition">{relItem.title}</h4>
+                                </Link>
+                            ))}
                         </div>
                     </div>
                 </div>

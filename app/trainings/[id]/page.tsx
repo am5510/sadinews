@@ -1,43 +1,30 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronRight, Calendar, Clock, BookOpen, Loader2 } from 'lucide-react';
-import { TrainingItem } from '@/types';
+import { ArrowLeft, ChevronRight, Calendar, Clock, BookOpen } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
+import Image from 'next/image';
 
-export default function TrainingDetailPage() {
-    const params = useParams();
-    const id = params.id as string;
+export const revalidate = 60;
 
-    const [event, setEvent] = useState<TrainingItem | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export async function generateStaticParams() {
+    const trainings = await prisma.training.findMany({
+        select: { id: true },
+    });
+    return trainings.map((item) => ({
+        id: item.id,
+    }));
+}
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const res = await fetch(`/api/trainings/${id}`);
-                if (!res.ok) throw new Error('Training not found');
-                const data = await res.json();
-                setEvent(data);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+interface Props {
+    params: Promise<{ id: string }>;
+}
 
-        if (id) fetchData();
-    }, [id]);
+export default async function TrainingDetailPage({ params }: Props) {
+    const { id } = await params;
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <Loader2 size={48} className="animate-spin text-blue-600" />
-            </div>
-        );
-    }
+    const event = await prisma.training.findUnique({
+        where: { id },
+    });
 
     if (!event) {
         return (
@@ -84,8 +71,13 @@ export default function TrainingDetailPage() {
                     </div>
 
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-start gap-4">
-                        <div className="w-16 h-16 bg-gray-200 rounded-full flex-shrink-0 overflow-hidden border-2 border-gray-100">
-                            <img src={event.speakerImage || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop"} alt="Speaker" className="w-full h-full object-cover" />
+                        <div className="w-16 h-16 bg-gray-200 rounded-full flex-shrink-0 overflow-hidden border-2 border-gray-100 relative">
+                            <Image
+                                src={event.speakerImage || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop"}
+                                alt="Speaker"
+                                fill
+                                className="object-cover"
+                            />
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 text-lg">วิทยากร: {event.speaker || '-'}</h4>
