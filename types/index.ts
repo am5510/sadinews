@@ -22,6 +22,9 @@ export interface TrainingItem {
     date: number;
     month: number;
     year: number;
+    endDate?: number | null;
+    endMonth?: number | null;
+    endYear?: number | null;
     time: string;
     location: string;
     seats: number;

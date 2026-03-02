@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Home, Bell, Calendar, Film, Settings, X } from 'lucide-react';
 
-export default function Header() {
+export default function Header({ logoUrl }: { logoUrl?: string | null }) {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -25,9 +25,13 @@ export default function Header() {
                                 <Menu size={24} />
                             </button>
                             <Link href="/" className="flex items-center gap-2 group">
-                                <div className="text-3xl tracking-tighter text-white flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                                    <span className="font-bold mr-1">Sadi</span><span className="font-light">News</span>
-                                </div>
+                                {logoUrl ? (
+                                    <img src={logoUrl} alt="SadiNews Logo" className="h-[40px] w-auto object-contain" />
+                                ) : (
+                                    <div className="text-3xl tracking-tighter text-white flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                                        <span className="font-bold mr-1">Sadi</span><span className="font-light">News</span>
+                                    </div>
+                                )}
                             </Link>
                         </div>
 
@@ -56,9 +60,13 @@ export default function Header() {
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
                     <div className="absolute left-0 top-0 bottom-0 w-3/4 max-w-xs bg-white shadow-2xl p-6 animate-slide-in-left flex flex-col">
                         <div className="flex justify-between items-center mb-8">
-                            <div className="text-3xl tracking-tighter text-black flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                                <span className="font-bold mr-1">Sadi</span><span className="font-light">News</span>
-                            </div>
+                            {logoUrl ? (
+                                <img src={logoUrl} alt="SadiNews Logo" className="h-[40px] w-auto object-contain" />
+                            ) : (
+                                <div className="text-3xl tracking-tighter text-black flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                                    <span className="font-bold mr-1">Sadi</span><span className="font-light">News</span>
+                                </div>
+                            )}
                             <button onClick={() => setIsMobileMenuOpen(false)} className="text-gray-500 hover:text-red-600"><X size={24} /></button>
                         </div>
                         <nav className="flex flex-col gap-2">

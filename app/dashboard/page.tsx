@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, LayoutDashboard, FileText, Calendar, Film, ListFilter, Plus, Edit, Trash2, ArrowLeft, LogOut, X, Loader2, UploadCloud, Images, ImageIcon, Video, CheckCircle, Link as LinkIcon, Code, Eye, EyeOff } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, FileText, Calendar, Film, ListFilter, Plus, Edit, Trash2, ArrowLeft, LogOut, X, Loader2, UploadCloud, Images, ImageIcon, Video, CheckCircle, Link as LinkIcon, Code, Eye, EyeOff, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NewsItem, TrainingItem, MediaItem } from '@/types';
@@ -24,6 +24,7 @@ export default function DashboardPage() {
     const [mediaList, setMediaList] = useState<MediaItem[]>([]);
 
     // UI State
+    const [siteLogo, setSiteLogo] = useState<string | null>(null);
     const [showNewsModal, setShowNewsModal] = useState(false);
     const [showTrainingModal, setShowTrainingModal] = useState(false);
     const [showMediaModal, setShowMediaModal] = useState(false);
@@ -58,25 +59,29 @@ export default function DashboardPage() {
         videoEmbed: ''
     });
 
-    // Insert Image/Video State
     const [isInsertingImage, setIsInsertingImage] = useState(false);
     const [isInsertingVideo, setIsInsertingVideo] = useState(false);
-    const [trainingForm, setTrainingForm] = useState({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' });
+    const [trainingForm, setTrainingForm] = useState({ title: '', rawDate: '', rawEndDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' });
     const [mediaForm, setMediaForm] = useState({ title: '', category: 'image', sourceType: 'upload', url: '', embedCode: '', description: '', coverImage: '' });
 
     // Fetch Data
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [newsRes, trainingsRes, mediaRes] = await Promise.all([
+            const [newsRes, trainingsRes, mediaRes, settingsRes] = await Promise.all([
                 fetch('/api/news?all=true', { cache: 'no-store' }),
                 fetch('/api/trainings', { cache: 'no-store' }),
                 fetch('/api/media', { cache: 'no-store' }),
+                fetch('/api/settings', { cache: 'no-store' }),
             ]);
 
             if (newsRes.ok) setNewsList(await newsRes.json());
             if (trainingsRes.ok) setTrainingList(await trainingsRes.json());
             if (mediaRes.ok) setMediaList(await mediaRes.json());
+            if (settingsRes.ok) {
+                const settings = await settingsRes.json();
+                if (settings && settings.logo) setSiteLogo(settings.logo);
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -110,6 +115,31 @@ export default function DashboardPage() {
         localStorage.removeItem('isAdmin');
         setIsLoggedIn(false);
         router.push('/');
+    };
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsUploading(true);
+            const url = await uploadFile(file);
+            setSiteLogo(url);
+
+            const res = await fetch('/api/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logo: url }),
+            });
+
+            if (!res.ok) throw new Error('Failed to update logo');
+            alert('อัปเดตโลโก้สำเร็จ');
+        } catch (error: any) {
+            console.error('Logo Update Error:', error);
+            alert("อัปเดตโลโก้ล้มเหลว: " + (error.message || 'Unknown error'));
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     if (!isLoggedIn) {
@@ -416,10 +446,11 @@ export default function DashboardPage() {
     const handleAddTraining = async (e: React.FormEvent) => {
         e.preventDefault();
         const d = trainingForm.rawDate ? new Date(trainingForm.rawDate) : new Date();
+        const ed = trainingForm.rawEndDate ? new Date(trainingForm.rawEndDate) : null;
 
         try {
             setIsUploading(true);
-            const trainingData = {
+            const trainingData: any = {
                 title: trainingForm.title,
                 date: d.getDate(),
                 month: d.getMonth(),
@@ -435,6 +466,12 @@ export default function DashboardPage() {
                 speakerImage: trainingForm.speakerImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop',
                 description: trainingForm.description,
             };
+
+            if (ed) {
+                trainingData.endDate = ed.getDate();
+                trainingData.endMonth = ed.getMonth();
+                trainingData.endYear = ed.getFullYear();
+            }
 
             if (editingTrainingId) {
                 const res = await fetch(`/api/trainings/${editingTrainingId}`, {
@@ -453,7 +490,7 @@ export default function DashboardPage() {
             }
 
             setShowTrainingModal(false);
-            setTrainingForm({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' });
+            setTrainingForm({ title: '', rawDate: '', rawEndDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' });
             setEditingTrainingId(null);
             setIsUploading(false);
             fetchData();
@@ -551,9 +588,14 @@ export default function DashboardPage() {
     const openEditTraining = (t: TrainingItem) => {
         setEditingTrainingId(t.id.toString());
         const dateStr = `${t.year}-${String(t.month + 1).padStart(2, '0')}-${String(t.date).padStart(2, '0')}`;
+        let endDateStr = '';
+        if (t.endYear && typeof t.endMonth === 'number' && t.endDate) {
+            endDateStr = `${t.endYear}-${String(t.endMonth + 1).padStart(2, '0')}-${String(t.endDate).padStart(2, '0')}`;
+        }
         setTrainingForm({
             title: t.title,
             rawDate: dateStr,
+            rawEndDate: endDateStr,
             time: t.time,
             location: t.location,
             seats: t.seats.toString(),
@@ -611,6 +653,42 @@ export default function DashboardPage() {
                     <button onClick={handleLogout} className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition">
                         <LogOut size={18} /> ออกจากระบบ
                     </button>
+                </div>
+
+                {/* System Settings */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Settings size={18} /> ตั้งค่าระบบ (System Settings)</h3>
+                    </div>
+                    <div className="p-6">
+                        <div className="max-w-md">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">โลโก้เว็บไซต์ (Website Logo)</label>
+                            <div className="flex items-center gap-6">
+                                <div className="w-32 h-16 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200 overflow-hidden relative group">
+                                    {siteLogo ? (
+                                        <img src={siteLogo} alt="Site Logo" className="max-w-full max-h-full object-contain p-2" />
+                                    ) : (
+                                        <div className="text-xl tracking-tighter text-black flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                                            <span className="font-bold mr-1">Sadi</span><span className="font-light">News</span>
+                                        </div>
+                                    )}
+                                    {isUploading && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                            <Loader2 size={20} className="text-white animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <label className="cursor-pointer bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 transition relative overflow-hidden">
+                                        <UploadCloud size={16} />
+                                        {isUploading ? 'กำลังอัปโหลด...' : 'อัปโหลดโลโก้ใหม่'}
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={isUploading} />
+                                    </label>
+                                    <p className="text-xs text-gray-500 mt-2">แนะนำภาพพื้นหลังโปร่งใส (.png) หรือ SVG</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -683,7 +761,7 @@ export default function DashboardPage() {
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                             <h3 className="font-bold text-gray-800 flex items-center gap-2"><Calendar size={18} /> จัดการตารางอบรม</h3>
                             <button
-                                onClick={() => { setEditingTrainingId(null); setTrainingForm({ title: '', rawDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' }); setShowTrainingModal(true); }}
+                                onClick={() => { setEditingTrainingId(null); setTrainingForm({ title: '', rawDate: '', rawEndDate: '', time: '', location: '', seats: '', price: '', speaker: '', speakerImage: '', speakerPosition: '', type: 'Onsite', description: '' }); setShowTrainingModal(true); }}
                                 className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1">
                                 <Plus size={12} /> เพิ่มอบรม
                             </button>
@@ -695,7 +773,10 @@ export default function DashboardPage() {
                                     {trainingList.map((t) => (
                                         <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 font-medium truncate max-w-[180px]">{t.title}</td>
-                                            <td className="px-4 py-3 text-xs text-gray-500">{t.date}/{t.month + 1}/{t.year}</td>
+                                            <td className="px-4 py-3 text-xs text-gray-500">
+                                                {t.date}/{t.month + 1}/{t.year}
+                                                {t.endDate && typeof t.endMonth === 'number' && t.endYear ? ` - ${t.endDate}/${t.endMonth + 1}/${t.endYear}` : ''}
+                                            </td>
                                             <td className="px-4 py-3 text-right flex justify-end gap-2">
                                                 <button onClick={() => openEditTraining(t)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="แก้ไข"><Edit size={16} /></button>
                                                 <button onClick={() => handleDelete('trainings', t.id.toString())} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash2 size={16} /></button>
@@ -740,6 +821,7 @@ export default function DashboardPage() {
                         </table>
                     </div>
                 </div>
+
             </div>
 
             {/* Modals */}
@@ -858,7 +940,7 @@ export default function DashboardPage() {
             }
 
             {
-                showTrainingModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"><div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-fade-in-up"><div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center"><h3 className="text-lg font-bold flex items-center gap-2"><Calendar size={20} className="text-blue-200" /> {editingTrainingId ? 'แก้ไขหลักสูตรอบรม' : 'เพิ่มหลักสูตรอบรม'}</h3><button onClick={() => setShowTrainingModal(false)} className="text-blue-200 hover:text-white"><X size={24} /></button></div><form onSubmit={handleAddTraining} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อหลักสูตร</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.title} onChange={(e) => setTrainingForm({ ...trainingForm, title: e.target.value })} /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">วันที่ (MM/DD/YYYY)</label><input type="date" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.rawDate} onChange={(e) => setTrainingForm({ ...trainingForm, rawDate: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">เวลา (เช่น 09:00-16:00)</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.time} onChange={(e) => setTrainingForm({ ...trainingForm, time: e.target.value })} /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">สถานที่</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.location} onChange={(e) => setTrainingForm({ ...trainingForm, location: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ประเภท</label><select className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none bg-white" value={trainingForm.type} onChange={(e) => setTrainingForm({ ...trainingForm, type: e.target.value })}><option>Onsite</option><option>Online</option><option>Hybrid</option></select></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">จำนวนรับ (ท่าน)</label><input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.seats} onChange={(e) => setTrainingForm({ ...trainingForm, seats: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ราคา</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.price} onChange={(e) => setTrainingForm({ ...trainingForm, price: e.target.value })} /></div></div>
+                showTrainingModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"><div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-fade-in-up"><div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center"><h3 className="text-lg font-bold flex items-center gap-2"><Calendar size={20} className="text-blue-200" /> {editingTrainingId ? 'แก้ไขหลักสูตรอบรม' : 'เพิ่มหลักสูตรอบรม'}</h3><button onClick={() => setShowTrainingModal(false)} className="text-blue-200 hover:text-white"><X size={24} /></button></div><form onSubmit={handleAddTraining} className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อหลักสูตร</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.title} onChange={(e) => setTrainingForm({ ...trainingForm, title: e.target.value })} /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">เริ่มต้นวันที่</label><input type="date" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.rawDate} onChange={(e) => setTrainingForm({ ...trainingForm, rawDate: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ถึงวันที่ (ไม่บังคับ)</label><input type="date" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.rawEndDate || ''} onChange={(e) => setTrainingForm({ ...trainingForm, rawEndDate: e.target.value })} /></div></div><div><label className="block text-sm font-medium text-gray-700 mb-1">เวลา (เช่น 09:00-16:00)</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.time} onChange={(e) => setTrainingForm({ ...trainingForm, time: e.target.value })} /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">สถานที่</label><input type="text" required className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.location} onChange={(e) => setTrainingForm({ ...trainingForm, location: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ประเภท</label><select className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none bg-white" value={trainingForm.type} onChange={(e) => setTrainingForm({ ...trainingForm, type: e.target.value })}><option>Onsite</option><option>Online</option><option>Hybrid</option></select></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">จำนวนรับ (ท่าน)</label><input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.seats} onChange={(e) => setTrainingForm({ ...trainingForm, seats: e.target.value })} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">ราคา</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.price} onChange={(e) => setTrainingForm({ ...trainingForm, price: e.target.value })} /></div></div>
                     <div className="grid grid-cols-2 gap-4 items-end">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">วิทยากร</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.speaker} onChange={(e) => setTrainingForm({ ...trainingForm, speaker: e.target.value })} /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งวิทยากร</label><input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none" value={trainingForm.speakerPosition} onChange={(e) => setTrainingForm({ ...trainingForm, speakerPosition: e.target.value })} /></div>

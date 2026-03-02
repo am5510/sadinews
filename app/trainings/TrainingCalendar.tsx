@@ -46,9 +46,15 @@ export default function TrainingCalendar({ initialTrainings }: TrainingCalendarP
 
     // Get trainings for a specific day to map onto the calendar
     const getTrainingsForDay = (day: number) => {
-        return initialTrainings.filter(item =>
-            item.date === day && item.month === month && item.year === year
-        );
+        const currentDateStr = new Date(year, month, day).getTime();
+        return initialTrainings.filter(item => {
+            const startDate = new Date(item.year, item.month, item.date).getTime();
+            if (!item.endDate || item.endMonth === undefined || item.endMonth === null || !item.endYear) {
+                return item.date === day && item.month === month && item.year === year;
+            }
+            const endDate = new Date(item.endYear, item.endMonth, item.endDate).getTime();
+            return currentDateStr >= startDate && currentDateStr <= endDate;
+        });
     };
 
     return (
@@ -97,10 +103,16 @@ export default function TrainingCalendar({ initialTrainings }: TrainingCalendarP
 
                                         {/* Training Indicator Dot */}
                                         {hasTraining && (
-                                            <div className="w-full flex justify-end">
-                                                <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold shadow-sm">
-                                                    {dayTrainings[0].date}
-                                                </div>
+                                            <div className="w-full flex justify-end gap-1 mt-1">
+                                                {dayTrainings.map((training) => (
+                                                    <div
+                                                        key={training.id}
+                                                        className={`w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full shadow-sm ${training.type === 'Online' ? 'bg-red-500' :
+                                                            training.type === 'Onsite' ? 'bg-green-500' : 'bg-blue-500'
+                                                            }`}
+                                                        title={training.title}
+                                                    ></div>
+                                                ))}
                                             </div>
                                         )}
                                     </>

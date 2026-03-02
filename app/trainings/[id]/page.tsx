@@ -55,7 +55,11 @@ export default async function TrainingDetailPage({ params }: Props) {
                             <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm mb-4 inline-block border border-white/30">{event.type}</span>
                             <h1 className="text-xl md:text-2xl font-bold leading-tight mb-4">{event.title}</h1>
                             <div className="flex flex-wrap gap-4 text-sm opacity-90">
-                                <div className="flex items-center gap-1.5"><Calendar size={16} /> {event.date}/{event.month + 1}/{event.year}</div>
+                                <div className="flex items-center gap-1.5 min-w-[120px]">
+                                    <Calendar size={16} />
+                                    {event.date}/{event.month + 1}/{event.year}
+                                    {event.endDate && typeof event.endMonth === 'number' && event.endYear ? ` - ${event.endDate}/${event.endMonth + 1}/${event.endYear}` : ''}
+                                </div>
                                 <div className="flex items-center gap-1.5"><Clock size={16} /> {event.time}</div>
                             </div>
                         </div>

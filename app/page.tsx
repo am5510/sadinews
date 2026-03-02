@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Clock, MapPin, Play } from 'lucide-react';
+import { ChevronRight, ArrowRight, Play, ExternalLink, Calendar, Clock, MapPin } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import HomeCarousel from '@/components/HomeCarousel';
 
@@ -84,7 +84,6 @@ export default async function Home() {
               {/* Main Highlight (Left - 2/3) - Carousel */}
               <HomeCarousel featuredNews={featuredNews} />
 
-              {/* Side Grid (Right - 1/3) -> 2x2 Grid */}
               <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 lg:gap-x-4 lg:gap-y-6 gap-4">
                 {featuredNews.slice(1, 5).map((item) => (
                   <Link key={item.id} href={`/news/${item.id}`} className="group cursor-pointer flex flex-col gap-2">
@@ -161,13 +160,21 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {trainings.map((item) => (
                 <Link key={item.id} href={`/trainings/${item.id}`} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition group">
-                  <div className="flex flex-col items-center justify-center bg-blue-50 text-blue-600 w-16 h-16 rounded-xl flex-shrink-0 border border-blue-100">
-                    <span className="text-xl font-bold font-mono">{item.date}</span>
-                    <span className="text-xs">{months[item.month]}</span>
+                  <div className="flex flex-col items-center justify-center p-3 sm:px-4 sm:py-3 bg-white w-auto h-auto min-w-[100px] rounded-xl flex-shrink-0 shadow-sm border border-gray-100/50">
+                    <Calendar size={20} className="text-red-600 mb-2" />
+                    <div className="bg-gray-800 text-white text-xs sm:text-sm font-semibold rounded-lg px-2 sm:px-3 py-1.5 flex text-center flex-col shadow-[0_1px_2px_rgba(0,0,0,0.02)] relative overflow-hidden group-hover:bg-gray-700 transition-colors">
+                      {item.date.toString().padStart(2, '0')}/{(item.month + 1).toString().padStart(2, '0')}/{(item.year + 543).toString().slice(-2)}
+                      {item.endDate && typeof item.endMonth === 'number' && item.endYear ? (
+                        <>
+                          <span className="text-gray-400 opacity-80 text-[10px] mx-auto">-</span>
+                          <span>{item.endDate.toString().padStart(2, '0')}/{(item.endMonth + 1).toString().padStart(2, '0')}/{(item.endYear + 543).toString().slice(-2)}</span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="flex-1 flex flex-col justify-center h-full min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.type === 'Online' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-green-50 text-green-600 border-green-100'}`}>{item.type}</span>
+                      <span className={`px - 1.5 py - 0.5 rounded text - [10px] font - bold border ${item.type === 'Online' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-green-50 text-green-600 border-green-100'} `}>{item.type}</span>
                       <span className="text-xs text-gray-400 flex items-center gap-1 truncate"><Clock size={10} /> {item.time}</span>
                     </div>
                     <h3 className="font-bold text-sm text-gray-900 mb-1 group-hover:text-blue-600 transition line-clamp-1">{item.title}</h3>
@@ -203,18 +210,14 @@ export default async function Home() {
               {media.map((item) => (
                 <Link key={item.id} href={`/media/${item.id}`} className="group cursor-pointer">
                   <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-2 relative shadow-md">
-                    {/* @ts-ignore */}
                     <Image
                       src={(() => {
                         // 1. Use Cover Image if available
-                        // @ts-ignore
                         if (item.coverImage) return item.coverImage;
 
                         // 2. If it's a video, try to get a thumbnail
-                        // @ts-ignore
                         if (item.category === 'video' || item.sourceType === 'video') {
                           // YouTube Thumbnail
-                          // @ts-ignore
                           const ytMatch = item.url?.trim().match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([^&?\/]+)/);
                           if (ytMatch && ytMatch[1]) {
                             return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
@@ -224,26 +227,21 @@ export default async function Home() {
                         }
 
                         // 3. Fallback to original URL (for images) or generic placeholder
-                        // @ts-ignore
                         return item.url || 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000&auto=format&fit=crop';
                       })()}
-                      // @ts-ignore
                       alt={item.title}
                       fill
                       className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition duration-500"
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
-                    {/* @ts-ignore */}
-                    {/* @ts-ignore */}
-
-                  </div>
+                  </div >
                   <h4 className="text-sm font-medium line-clamp-2 text-gray-900 group-hover:text-purple-600 transition">{item.title}</h4>
-                </Link>
+                </Link >
               ))}
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+            </div >
+          </div >
+        </div >
+      </main >
+    </div >
   );
 }

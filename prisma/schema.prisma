@@ -31,6 +31,9 @@ model Training {
   date         Int
   month        Int
   year         Int
+  endDate      Int?
+  endMonth     Int?
+  endYear      Int?
   time         String
   location     String
   seats        Int      @default(0)
@@ -55,4 +58,10 @@ model Media {
   views       Int      @default(0)
   description String?
   coverImage  String?
+}
+
+model SiteSetting {
+  id        String   @id @default("1")
+  logo      String?
+  updatedAt DateTime @updatedAt
 }
